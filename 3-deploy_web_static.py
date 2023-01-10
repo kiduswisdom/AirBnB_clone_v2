@@ -1,78 +1,57 @@
 #!/usr/bin/python3
-""" Fabric script (based on the file 2-do_deploy_web_static.py) that creates
-and distributes an archive to your web servers, using the function deploy: """
-
+"""Fabric script that generates a .tgz archive from the contents of the
+ web_static folder of your AirBnB Clone repo, using the function do_pack."""
 
 from fabric.api import *
 from datetime import datetime
-from os.path import exists
-# do_pack = __import__('1-pack_web_static').do_pack
-# do_deploy = __import__('2-do_deploy_web_static').do_deploy
+import os
 
-
-env.hosts = ['35.237.166.125', '54.167.61.201']  # <IP web-01>, <IP web-02>
-# ^ All remote commands must be executed on your both web servers
-# (using env.hosts = ['<IP web-01>', 'IP web-02'] variable in your script)
+env.hosts = ['34.74.27.162', '54.224.88.154']
 
 
 def do_pack():
-    """generates a .tgz archive from the contents of the web_static folder
-    """
-    local("sudo mkdir -p versions")
-    date = datetime.now().strftime("%Y%m%d%H%M%S")
-    filename = "versions/web_static_{}.tgz".format(date)
-    result = local("sudo tar -cvzf {} web_static".format(filename))
-    if result.succeeded:
-        return filename
-    else:
+    try:
+        formato = "%Y%m%d%H%M%S"
+        date_now = datetime.now()
+        created_at = date_now.strftime(formato)
+        local("mkdir -p versions")
+        file_tgz = "versions/web_static_{}.tgz".format(created_at)
+        local("tar -cvzf {} web_static".format(file_tgz))
+        return file_tgz
+    except:
         return None
 
 
 def do_deploy(archive_path):
-    """ distributes an archive to my web servers
-    """
-    if exists(archive_path) is False:
-        return False  # Returns False if the file at archive_path doesnt exist
-    filename = archive_path.split('/')[-1]
-    # so now filename is <web_static_2021041409349.tgz>
-    no_tgz = '/data/web_static/releases/' + "{}".format(filename.split('.')[0])
-    # curr = '/data/web_static/current'
-    tmp = "/tmp/" + filename
-
+    if os.path.isfile(archive_path) is False:
+        return False
     try:
-        put(archive_path, "/tmp/")
-        # ^ Upload the archive to the /tmp/ directory of the web server
-        run("mkdir -p {}/".format(no_tgz))
-        # Uncompress the archive to the folder /data/web_static/releases/
-        # <archive filename without extension> on the web server
-        run("tar -xzf {} -C {}/".format(tmp, no_tgz))
-        run("rm {}".format(tmp))
-        run("mv {}/web_static/* {}/".format(no_tgz, no_tgz))
-        run("rm -rf {}/web_static".format(no_tgz))
-        # ^ Delete the archive from the web server
+        put(archive_path, "/tmp")
+        id_file = archive_path.split("_")
+        id_final = id_file[2][:-4]
+        folder = "/data/web_static/releases/"
+        run("mkdir -p {}web_static_{}/".format(folder, id_final))
+        run("tar -xzf /tmp/web_static_{}.tgz -C {}web_static_{}/"
+            .format(id_final, folder, id_final))
+        run("rm /tmp/web_static_{}.tgz".format(id_final))
+        run("mv {}web_static_{}/web_static/* {}web_static_{}/"
+            .format(folder, id_final, folder, id_final))
+        run("rm -rf {}web_static_{}/web_static".format(folder, id_final))
         run("rm -rf /data/web_static/current")
-        # Delete the symbolic link /data/web_static/current from the web server
-        run("ln -s {}/ /data/web_static/current".format(no_tgz))
-        # Create a new the symbolic link /data/web_static/current on the
-        # web server, linked to the new version of your code
-        # (/data/web_static/releases/<archive filename without extension>)
+        run("ln -s {}web_static_{}/ /data/web_static/current"
+            .format(folder, id_final))
         return True
     except:
         return False
 
 
 def deploy():
-    """ creates and distributes an archive to your web servers
     """
-    new_archive_path = do_pack()
-    if exists(new_archive_path) is False:
+    Fabric script that creates and distributed
+    an archive to your web servers, using the function deploy
+    """
+    archive_path = do_pack()
+    if archive_path is None:
         return False
-    result = do_deploy(new_archive_path)
-    return result
-
-
-# The script follows these steps:
-# Call the do_pack() function & store the path of the created archive
-# Return False if no archive has been created
-# Call the do_deploy(archive_path) func, using the path of the new archive
-# Return the return value of do_deploy
+    validate = do_deploy(archive_path)
+    return validate

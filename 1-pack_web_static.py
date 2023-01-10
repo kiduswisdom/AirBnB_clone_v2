@@ -1,20 +1,22 @@
-#!/usr/bin/python3
-""" This module contains the function do_pack that generates a .tgz archive
-  from the contents of the web_static folder (fabric script) """
+#!/usr/bin/env bash
+#Bash script that sets up your web servers for the deployment of web_static
 
+sudo apt-get update -y
+sudo apt-get install nginx -y
 
-from fabric.api import *
-from datetime import datetime
+#create folders
+mkdir -p /data/web_static/releases/test/
+mkdir -p /data/web_static/shared/
 
+#HTML file
+echo "Holberton By Dlhz" > /data/web_static/releases/test/index.html
 
-def do_pack():
-    """ Fabric script that generates a .tgz archive from the contents of the...
-    ...web_static folder """
-    local("sudo mkdir -p versions")
-    date = datetime.now().strftime("%Y%m%d%H%M%S")
-    filename = "versions/web_static_{}.tgz".format(date)
-    result = local("sudo tar -cvzf {} web_static".format(filename))
-    if result.succeeded:
-        return filename
-    else:
-        return None
+#Symbolic link
+sudo ln -sf /data/web_static/releases/test /data/web_static/current
+
+#Set ownership
+sudo chown -R ubuntu:ubuntu /data/
+
+#Nginx config
+sudo sed -i "38i \\\tlocation /hbnb_static {\n\t\talias /data/web_static/current;\n\t}\n" /etc/nginx/sites-available/default
+sudo service nginx restart
