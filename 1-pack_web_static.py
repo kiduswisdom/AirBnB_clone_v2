@@ -1,22 +1,19 @@
-#!/usr/bin/env bash
-#Bash script that sets up your web servers for the deployment of web_static
+#!/usr/bin/python3
+""" Function that compress a folder """
+from datetime import datetime
+from fabric.api import local
 
-sudo apt-get update -y
-sudo apt-get install nginx -y
 
-#create folders
-mkdir -p /data/web_static/releases/test/
-mkdir -p /data/web_static/shared/
-
-#HTML file
-echo "Holberton By Dlhz" > /data/web_static/releases/test/index.html
-
-#Symbolic link
-sudo ln -sf /data/web_static/releases/test /data/web_static/current
-
-#Set ownership
-sudo chown -R ubuntu:ubuntu /data/
-
-#Nginx config
-sudo sed -i "38i \\\tlocation /hbnb_static {\n\t\talias /data/web_static/current;\n\t}\n" /etc/nginx/sites-available/default
-sudo service nginx restart
+def do_pack():
+    """
+    must return the archive path if the archive has been correctly
+    generated. Otherwise, it should return None
+    """
+    try:
+        local("mkdir -p versions")
+        date = datetime.now().strftime("%Y%m%d%H%M%S")
+        rout = "versions/web_static_{}.tgz".format(date)
+        _gzip = local("tar -cvzf {} web_static".format(rout))
+        return rout
+    except Exception:
+        return None
